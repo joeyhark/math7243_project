@@ -9,15 +9,17 @@ from dataset.semantic_dataset import all_file_prefixes
 def wc(file_name):
     print(f"doing: {file_name}")
     #linux version
-    # out = subprocess.Popen(
-    #     ["wc", "-l", file_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    # ).communicate()[0]
+    out = subprocess.Popen(
+        ["wc", "-l", file_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    ).communicate()[0]
+    return int(out.split()[0])
+
 
     #windows version
-    out = subprocess.Popen(
-        ["find", "/c", "/v", '\"\"', file_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-    ).communicate()[0]
-    return int(out.split()[-1])
+    # out = subprocess.Popen(
+    #     ["find", "/c", "/v", '\"\"', file_name], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    # ).communicate()[0]
+    # return int(out.split()[-1])
 
 
 def prepend_line(file_name, line):
