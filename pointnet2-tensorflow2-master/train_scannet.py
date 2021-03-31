@@ -60,7 +60,7 @@ def train():
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
-	
+
 	callbacks = [
 		keras.callbacks.TensorBoard(
 			'./logs/{}'.format(config['log_dir']), update_freq=50),
