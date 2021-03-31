@@ -4,6 +4,11 @@
 *.pcd
 *LABELS
 *7Z
+*.h5
+*.csv
+*.json
+*.txt
+*.zip
 .vscode
 .ipynb_checkpoints/
 dataset/semantic_*/
