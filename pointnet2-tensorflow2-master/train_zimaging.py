@@ -3,6 +3,9 @@ import sys
 import datetime
 import numpy as np
 import open3d as o3d
+import time
+import random
+from pnet2_layers import utils
 
 sys.path.insert(0, './')
 
@@ -11,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow import keras
 
-from models.sem_seg_model import SEM_SEG_Model
+from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model
 
 tf.random.set_seed(42)
 
@@ -101,6 +104,7 @@ def load_test_dataset(in_file):
 def train():
 
 	model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -116,7 +120,7 @@ def train():
 	]
 
 	model.build((config['batch_size'], 8192, 3))
-	# print(model.summary())
+	print(model.summary())
 
 	model.compile(
 		optimizer=keras.optimizers.Adam(config['lr']),
@@ -130,26 +134,45 @@ def train():
 		validation_steps=10,
 		validation_freq=1,
 		callbacks=callbacks,
-		epochs=1,
-		verbose=2
+		epochs=3,
+		verbose=1
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
+	points = 8192*16
 	for x in test_ds.take(1):
-		print(x[0].numpy())
-		eval = model([x[0]])[0]
+		data = x[0].numpy()
+
+		indicies = sorted(random.sample(list(range(len(data))), k=points))
+		print(np.asarray(indicies))
+		# sampled_data = data[indicies]
+		sampled_data = data
+
+		t1 = time.time()
+		eval = model([sampled_data])[0]
+		print(f"model time: {time.time()-t1}")
 		eval = np.argmax(eval, axis=1)
+
 		print(eval)
-		print(eval.astype(bool))
 		print(sum(eval))
-		head = x[0].numpy()[eval.astype(bool)]
+
+		head = sampled_data[eval.astype(bool)]
 		print(f'len of head: {len(head)}')
+
+		# #interpolate
+		# t2 = time.time()
+		# # full_labels = interpolate_dense_labels(sampled_data, eval, data)
+		# utils.simple_knn(sampled_data, eval, data)
+		# print(f'interpolate time: {time.time()-t2}')
+
+		# full_head = data[np.asarray(full_labels).astype(bool)]
+
 		pcd = o3d.geometry.PointCloud()
 		pcd.points = o3d.utility.Vector3dVector(head)
 		o3d.visualization.draw_geometries([pcd])
-		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(x[0].numpy())
-		o3d.visualization.draw_geometries([pcd])
+		# pcd_full = o3d.geometry.PointCloud()
+		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
+		# o3d.visualization.draw_geometries([pcd_full])
 
 		# correct = 0
 		# wrong = 0
@@ -161,6 +184,20 @@ def train():
 		# print(f"correct: {correct}")
 		# print(f"wrong: {wrong}")
 
+def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
+    sparse_pcd = o3d.geometry.PointCloud()
+    sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
+    sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
+
+    dense_labels = []
+    for dense_point in dense_points:
+        _, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
+        )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return dense_labels
 
 if __name__ == '__main__':
 

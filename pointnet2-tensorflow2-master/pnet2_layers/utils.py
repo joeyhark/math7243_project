@@ -16,6 +16,10 @@ from .cpp_modules import (
 )
 
 
+def simple_knn(sparse_points, sparse_labels, dense_points):
+	knn = three_nn([dense_points], [sparse_points])
+	print(knn)
+
 def sample_and_group(npoint, radius, nsample, xyz, points, knn=False, use_xyz=True):
 
 	new_xyz = gather_point(xyz, farthest_point_sample(npoint, xyz)) # (batch_size, npoint, 3)
