@@ -9,6 +9,7 @@
 *.json
 *.txt
 *.zip
+*.tfrecord
 .vscode
 .ipynb_checkpoints/
 dataset/semantic_*/
