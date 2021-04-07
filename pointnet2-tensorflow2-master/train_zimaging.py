@@ -15,6 +15,7 @@ import tensorflow as tf
 from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model
+from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
 
 tf.random.set_seed(42)
 
@@ -104,7 +105,10 @@ def load_test_dataset(in_file):
 def train():
 
 	model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+
+	#NOT FINISHED
+	# model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -135,7 +139,7 @@ def train():
 		validation_freq=1,
 		callbacks=callbacks,
 		epochs=3,
-		verbose=1
+		verbose=2
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
@@ -145,8 +149,8 @@ def train():
 
 		indicies = sorted(random.sample(list(range(len(data))), k=points))
 		print(np.asarray(indicies))
-		# sampled_data = data[indicies]
-		sampled_data = data
+		sampled_data = data[indicies]
+		# sampled_data = data
 
 		t1 = time.time()
 		eval = model([sampled_data])[0]
