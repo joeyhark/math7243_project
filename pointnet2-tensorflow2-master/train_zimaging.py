@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow import keras
 
-from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model
+from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
 
 tf.random.set_seed(42)
 
@@ -103,8 +103,9 @@ def load_test_dataset(in_file):
 
 def train():
 
+	# model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -135,7 +136,7 @@ def train():
 		validation_freq=1,
 		callbacks=callbacks,
 		epochs=3,
-		verbose=1
+		verbose=2
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
@@ -145,7 +146,7 @@ def train():
 
 		indicies = sorted(random.sample(list(range(len(data))), k=points))
 		print(np.asarray(indicies))
-		# sampled_data = data[indicies]
+		sampled_data = data[indicies]
 		sampled_data = data
 
 		t1 = time.time()
@@ -157,6 +158,24 @@ def train():
 		print(sum(eval))
 
 		head = sampled_data[eval.astype(bool)]
+		# print(head.shape)
+		# mean = np.mean(head, axis=0)
+		# print(mean)
+		#
+		# centered_head = head-mean
+		#
+		# print(distances)
+		# print(f"max: {max(distances)}")
+		# print(f"mean: {np.mean(distances)}")
+		# print(f"std: {np.std(distances)}")
+		#
+		# reduced_head = head[np.where(distances < 0.11, True, False)]
+
+		distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
+		reduced_head = head[np.where(distances < (np.mean(distances)+(1*np.std(distances))), True, False)]
+
+		print(f"reduced head len: {len(reduced_head)}")
+
 		print(f'len of head: {len(head)}')
 
 		# #interpolate
@@ -168,7 +187,7 @@ def train():
 		# full_head = data[np.asarray(full_labels).astype(bool)]
 
 		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(head)
+		pcd.points = o3d.utility.Vector3dVector(reduced_head)
 		o3d.visualization.draw_geometries([pcd])
 		# pcd_full = o3d.geometry.PointCloud()
 		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
