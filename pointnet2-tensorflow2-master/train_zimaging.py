@@ -110,6 +110,7 @@ def train():
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
 	test_ds = load_test_dataset(config['test_ds'])
+	view_test_ds = load_test_dataset(config['view_ds'])
 
 	# for x in test_ds:
 	# 	print(x)
@@ -135,18 +136,19 @@ def train():
 		validation_steps=10,
 		validation_freq=1,
 		callbacks=callbacks,
-		epochs=3,
+		epochs=2,
 		verbose=2
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
 	points = 8192*16
-	for x in test_ds.take(1):
+	for x in view_test_ds.take(1):
 		data = x[0].numpy()
+		print(data.shape)
 
-		indicies = sorted(random.sample(list(range(len(data))), k=points))
-		print(np.asarray(indicies))
-		sampled_data = data[indicies]
+		# indicies = sorted(random.sample(list(range(len(data))), k=points))
+		# print(np.asarray(indicies))
+		# sampled_data = data[indicies]
 		sampled_data = data
 
 		t1 = time.time()
@@ -171,12 +173,14 @@ def train():
 		#
 		# reduced_head = head[np.where(distances < 0.11, True, False)]
 
-		distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
-		reduced_head = head[np.where(distances < (np.mean(distances)+(1*np.std(distances))), True, False)]
-
-		print(f"reduced head len: {len(reduced_head)}")
-
 		print(f'len of head: {len(head)}')
+		# distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
+		# reduced_head = head[np.where(distances < (np.mean(distances)+(1*np.std(distances))), True, False)]
+		# print(f"reduced head len: {len(reduced_head)}")
+		reduced_head = head
+
+
+
 
 		# #interpolate
 		# t2 = time.time()
@@ -185,6 +189,10 @@ def train():
 		# print(f'interpolate time: {time.time()-t2}')
 
 		# full_head = data[np.asarray(full_labels).astype(bool)]
+
+		pcd = o3d.geometry.PointCloud()
+		pcd.points = o3d.utility.Vector3dVector(data)
+		o3d.visualization.draw_geometries([pcd])
 
 		pcd = o3d.geometry.PointCloud()
 		pcd.points = o3d.utility.Vector3dVector(reduced_head)
@@ -224,6 +232,7 @@ if __name__ == '__main__':
 		'train_ds' : 'data/train.tfrecord',
 		'val_ds' : 'data/val.tfrecord',
 		'test_ds' : 'data/test_full.tfrecord',
+		'view_ds' : 'data/new_test_full.tfrecord',
 		'log_dir' : 'scannet_1',
 		'log_freq' : 10,
 		'test_freq' : 100,

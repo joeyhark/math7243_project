@@ -4,9 +4,12 @@ import numpy as np
 import h5py
 
 
+DATASET = "new_test"
+
 SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
-DATA_FOLDER = os.path.abspath(os.path.join(SUP_DIR, 'data'))
-RAW_SCANS = os.path.abspath(os.path.join(DATA_FOLDER, 'raw_scans'))
+DATA_DIR = os.path.abspath(os.path.join(SUP_DIR, 'data'))
+DATA_SET_DIR = os.path.abspath(os.path.join(DATA_DIR, DATASET))
+RAW_SCANS = os.path.abspath(os.path.join(DATA_SET_DIR, 'raw_scans'))
 
 
 # def downsample(pcd):
@@ -16,7 +19,7 @@ RAW_SCANS = os.path.abspath(os.path.join(DATA_FOLDER, 'raw_scans'))
 
 def convert_scans():
     try:
-        os.mkdir(os.path.join(DATA_FOLDER, "h5_files"))
+        os.mkdir(os.path.join(DATA_SET_DIR, "h5_files"))
     except:
         pass
     scans = os.listdir(RAW_SCANS)
@@ -39,7 +42,7 @@ def convert_scans():
         # print(np.asarray(pcd.points))
         # o3d.visualization.draw_geometries([pcd])
 
-        with h5py.File(os.path.join(DATA_FOLDER, "h5_files", f'{scan}.h5'), "w") as f:
+        with h5py.File(os.path.join(DATA_SET_DIR, "h5_files", f'{scan}.h5'), "w") as f:
             f['data'] = data
             f['labels'] = labels
 

@@ -6,10 +6,13 @@ import math
 import random
 import tensorflow as tf
 
+DATASET = "new_test"
+
 SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
-DATA_FOLDER = os.path.abspath(os.path.join(SUP_DIR, 'data'))
-TRAIN_DIR = os.path.abspath(os.path.join(DATA_FOLDER, 'train'))
-TEST_DIR = os.path.abspath(os.path.join(DATA_FOLDER, 'test'))
+DATA_DIR = os.path.abspath(os.path.join(SUP_DIR, 'data'))
+DATA_SET_DIR = os.path.abspath(os.path.join(DATA_DIR, DATASET))
+TRAIN_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'train'))
+TEST_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'test'))
 
 
 def sample():
