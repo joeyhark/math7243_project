@@ -18,7 +18,7 @@ from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2
 
 DATASET = "new4"
 
-VISUALIZE = True
+VISUALIZE = False
 SAMPLE = False
 
 tf.random.set_seed(42)
@@ -96,7 +96,9 @@ def load_test_dataset(in_file):
 	return dataset
 
 
-def test():
+def test(in_config=None):
+	if in_config:
+		config = in_config
 	test_ds = load_test_dataset(config['test_ds'])
 
 	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
@@ -198,7 +200,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_reduced1_1',
+		'log_dir' : 'zimaging_original_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
@@ -207,4 +209,4 @@ if __name__ == '__main__':
 		'bn' : False,
 	}
 
-	test()
+	test(config)

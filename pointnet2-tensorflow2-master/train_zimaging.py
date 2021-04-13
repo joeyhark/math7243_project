@@ -178,4 +178,4 @@ if __name__ == '__main__':
 	}
 
 	train()
-	test_zimaging.test()
+	test_zimaging.test(config)
