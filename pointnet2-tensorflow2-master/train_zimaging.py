@@ -16,6 +16,7 @@ from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
 
+import test_zimaging
 
 DATASET = "new4"
 
@@ -167,7 +168,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'scannet_1',
+		'log_dir' : 'zimaging_original_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 8,
@@ -177,3 +178,4 @@ if __name__ == '__main__':
 	}
 
 	train()
+	test_zimaging.test()

@@ -18,6 +18,9 @@ from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2
 
 DATASET = "new4"
 
+VISUALIZE = True
+SAMPLE = False
+
 tf.random.set_seed(42)
 
 
@@ -97,6 +100,8 @@ def test():
 	test_ds = load_test_dataset(config['test_ds'])
 
 	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
 	points = 35000
 	for x in test_ds:
@@ -109,11 +114,14 @@ def test():
 		# print(np.min(data))
 		# exit()
 
-		sampled_data = data
 
-		indicies = sorted(random.sample(list(range(len(data))), k=points))
-		sampled_data = data[indicies]
-		sampled_labels = truth_labels[indicies]
+		if SAMPLE:
+			indicies = sorted(random.sample(list(range(len(data))), k=points))
+			sampled_data = data[indicies]
+			sampled_labels = truth_labels[indicies]
+		else:
+			sampled_data = data
+			sampled_labels = truth_labels
 
 		t1 = time.time()
 		eval = model([sampled_data])[0]
@@ -158,14 +166,15 @@ def test():
 
 		# full_head = data[np.asarray(full_labels).astype(bool)]
 		#
-		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(data)
-		o3d.visualization.draw_geometries([pcd])
-		#
-		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(reduced_head)
-		o3d.visualization.draw_geometries([pcd])
-		
+		if VISUALIZE:
+			pcd = o3d.geometry.PointCloud()
+			pcd.points = o3d.utility.Vector3dVector(data)
+			o3d.visualization.draw_geometries([pcd])
+			#
+			pcd = o3d.geometry.PointCloud()
+			pcd.points = o3d.utility.Vector3dVector(reduced_head)
+			o3d.visualization.draw_geometries([pcd])
+
 		# pcd_full = o3d.geometry.PointCloud()
 		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
 		# o3d.visualization.draw_geometries([pcd_full])
@@ -189,7 +198,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'scannet_1',
+		'log_dir' : 'zimaging_reduced1_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
