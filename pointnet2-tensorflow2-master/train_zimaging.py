@@ -106,8 +106,8 @@ def load_test_dataset(in_file):
 
 def train():
 
-	# model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
@@ -139,31 +139,45 @@ def train():
 		validation_steps=10,
 		validation_freq=1,
 		callbacks=callbacks,
-		epochs=2,
+		epochs=1,
 		verbose=1
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
-	points = 8192
-	# for x in train_ds:
-		# data = x[0][0].numpy()
+	points = 35000
+	# for x in train_ds.take(1):
+	# 	data = x[0][0].numpy()
+	# 	print(data.shape)
+	# 	print(data)
+	# 	print(np.max(data))
+	# 	print(np.min(data))
 	for x in test_ds:
 		data = x[0].numpy()
-		print(data.shape)
+		truth_labels = x[1].numpy().flatten()
+		# print(data.shape)
+		# print(truth_labels.shape)
+		# print(data)
+		# print(np.max(data))
+		# print(np.min(data))
+		# exit()
 
 		sampled_data = data
 
 		indicies = sorted(random.sample(list(range(len(data))), k=points))
-		# print(np.asarray(indicies))
 		sampled_data = data[indicies]
+		sampled_labels = truth_labels[indicies]
 
 		t1 = time.time()
 		eval = model([sampled_data])[0]
+		# print(eval)
 		print(f"model time: {time.time()-t1}")
 		eval = np.argmax(eval, axis=1)
+		# print(eval.shape)
+		wrong = sum(np.absolute(sampled_labels - eval))
+		print(f"test accuracy: {(len(sampled_labels)-wrong)/len(sampled_labels)}")
 
-		print(eval)
-		print(sum(eval))
+		# print(eval)
+		# print(sum(eval))
 
 		head = sampled_data[eval.astype(bool)]
 		# print(head.shape)
@@ -179,7 +193,7 @@ def train():
 		#
 		# reduced_head = head[np.where(distances < 0.11, True, False)]
 
-		print(f'len of head: {len(head)}')
+		# print(f'len of head: {len(head)}')
 		# distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
 		# reduced_head = head[np.where(distances < (np.mean(distances)+(1*np.std(distances))), True, False)]
 		# print(f"reduced head len: {len(reduced_head)}")
@@ -195,14 +209,14 @@ def train():
 		# print(f'interpolate time: {time.time()-t2}')
 
 		# full_head = data[np.asarray(full_labels).astype(bool)]
-
-		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(data)
-		o3d.visualization.draw_geometries([pcd])
-
-		pcd = o3d.geometry.PointCloud()
-		pcd.points = o3d.utility.Vector3dVector(reduced_head)
-		o3d.visualization.draw_geometries([pcd])
+		#
+		# pcd = o3d.geometry.PointCloud()
+		# pcd.points = o3d.utility.Vector3dVector(data)
+		# o3d.visualization.draw_geometries([pcd])
+		#
+		# pcd = o3d.geometry.PointCloud()
+		# pcd.points = o3d.utility.Vector3dVector(reduced_head)
+		# o3d.visualization.draw_geometries([pcd])
 		# pcd_full = o3d.geometry.PointCloud()
 		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
 		# o3d.visualization.draw_geometries([pcd_full])
