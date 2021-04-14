@@ -104,11 +104,11 @@ def load_test_dataset(in_file):
 
 def train():
 
-	model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	#NOT FINISHED
-	# model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -139,11 +139,11 @@ def train():
 		validation_freq=1,
 		callbacks=callbacks,
 		epochs=3,
-		verbose=2
+		verbose=1
 	)
 	# for x in test_ds:
 	# 	print(model.predict(x))
-	points = 8192*16
+	points = 8192
 	for x in test_ds.take(1):
 		data = x[0].numpy()
 
