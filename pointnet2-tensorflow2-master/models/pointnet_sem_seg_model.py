@@ -128,8 +128,8 @@ class pointnet_SEM_SEG_Model(Model):
 			# print("\na")
 			pred = self.forward_pass(input[0], True)
 			# print("\nb")
-			print(input[1].shape)
-			print(pred.shape)
+			# print(input[1].shape)
+			# print(pred.shape)
 			loss = self.compiled_loss(input[1], pred)
 			# print("\nc")
 
