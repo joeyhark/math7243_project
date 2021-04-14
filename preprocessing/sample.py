@@ -5,71 +5,202 @@ import h5py
 import math
 import random
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from shutil import copy
+
+
+DATASET = "new4"
+TRAIN_PERCENT = 0.7
 
 SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
-DATA_FOLDER = os.path.abspath(os.path.join(SUP_DIR, 'data'))
-TRAIN_DIR = os.path.abspath(os.path.join(DATA_FOLDER, 'train'))
-TEST_DIR = os.path.abspath(os.path.join(DATA_FOLDER, 'test'))
+DATA_DIR = os.path.abspath(os.path.join(SUP_DIR, 'data'))
+DATA_SET_DIR = os.path.abspath(os.path.join(DATA_DIR, DATASET))
+H5_DIR = os.path.join(DATA_SET_DIR, "h5_files")
+
+TRAIN_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'train'))
+TRAIN_H5 = os.path.join(TRAIN_DIR, "h5_files")
+TRAIN_DATASET = os.path.join(TRAIN_DIR, "dataset")
+
+VAL_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'val'))
+VAL_H5 = os.path.join(VAL_DIR, "h5_files")
+VAL_DATASET = os.path.join(VAL_DIR, "dataset")
+
+# TEST_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'val'))
+# TEST_H5 = os.path.join(VAL_DIR, "h5_files")
+# TEST_DATASET = os.path.join(VAL_DIR, "dataset")
 
 
-def sample():
+def make_folders():
+    try:
+        os.mkdir(DATA_SET_DIR)
+    except:
+        pass
+    try:
+        os.mkdir(H5_DIR)
+    except:
+        pass
+
+    try:
+        os.mkdir(TRAIN_DIR)
+    except:
+        pass
+    try:
+        os.mkdir(TRAIN_H5)
+    except:
+        pass
+    try:
+        os.mkdir(TRAIN_DATASET)
+    except:
+        pass
+
+    try:
+        os.mkdir(VAL_DIR)
+    except:
+        pass
+    try:
+        os.mkdir(VAL_H5)
+    except:
+        pass
+    try:
+        os.mkdir(VAL_DATASET)
+    except:
+        pass
+
+    # try:
+    #     os.mkdir(TEST_DIR)
+    # except:
+    #     pass
+    # try:
+    #     os.mkdir(TESTL_H5)
+    # except:
+    #     pass
+    # try:
+    #     os.mkdir(TEST_DATASET)
+    # except:
+    #     pass
+
+def split():
+
+    categories = os.listdir(H5_DIR)
+    for cat in categories:
+        cat_h5 = os.path.join(H5_DIR, cat)
+        cat_train_h5 = os.path.join(TRAIN_H5, cat)
+        cat_train_dataset = os.path.join(TRAIN_DATASET, cat)
+        cat_val_h5 = os.path.join(VAL_H5, cat)
+        cat_val_dataset = os.path.join(VAL_DATASET, cat)
+
+        try:
+            os.mkdir(cat_train_h5)
+        except:
+            pass
+        try:
+            os.mkdir(cat_train_dataset)
+        except:
+            pass
+        try:
+            os.mkdir(cat_val_h5)
+        except:
+            pass
+        try:
+            os.mkdir(cat_val_dataset)
+        except:
+            pass
+
+        scans = os.listdir(cat_h5)
+        train_scans, val_scans = train_test_split(scans, train_size=float(TRAIN_PERCENT), shuffle=True)
+        for scan in train_scans:
+            copy(os.path.join(cat_h5, scan), os.path.join(cat_train_h5, scan))
+        for scan in val_scans:
+            copy(os.path.join(cat_h5, scan), os.path.join(cat_val_h5, scan))
+
+
+def sample(dir):
     points = 8192
     samples_per_file = 100
 
-    raw_train_dir = os.path.abspath(os.path.join(TRAIN_DIR, 'raw_h5'))
-    raw_files = os.listdir(raw_train_dir)
+    h5s = os.path.abspath(os.path.join(dir, 'h5_files'))
+    dataset_dir = os.path.abspath(os.path.join(dir, "dataset"))
+    all_tfrecord_file = os.path.abspath(os.path.join(dir, f'all.tfrecord'))
 
-    sampled_data_list = []
-    sampled_labels_list = []
-    for file in raw_files:
-        with h5py.File(os.path.join(raw_train_dir, file), "r") as h5_data:
-            data = np.asarray(h5_data['data'])
-            labels = np.asarray(h5_data['labels'])
-            total_points = len(data)
+    all_sampled_data_list = []
+    all_sampled_labels_list = []
 
-            for i in range(samples_per_file):
-                indicies = sorted(random.sample(list(range(total_points)), k=points))
-                sampled_data = data[indicies]
-                sampled_labels = labels[indicies]
-                sampled_data_list.append(sampled_data)
-                sampled_labels_list.append(sampled_labels)
-    print(len(sampled_data_list))
-    tfrecord_file = os.path.abspath(os.path.join(TRAIN_DIR, 'sampled', f'train.tfrecord'))
-    convert_to_tfrecord(sampled_data_list, sampled_labels_list, tfrecord_file)
+    categories = os.listdir(h5s)
+    for cat in categories:
+        print(f"\nCategory: {cat}")
+        cat_h5s = os.path.join(h5s, cat)
+        tfrecord_file = os.path.abspath(os.path.join(dataset_dir, f'{cat}.tfrecord'))
+        files = os.listdir(cat_h5s)
+        sampled_data_list = []
+        sampled_labels_list = []
+        for file in files:
+            print(f"Sampling {file}")
+            with h5py.File(os.path.join(cat_h5s, file), "r") as h5_data:
+                data = np.asarray(h5_data['data'])
+                labels = np.asarray(h5_data['labels'])
+                total_points = len(data)
 
-def sample_test():
-    points = 8192
-    samples_per_file = 100
+                for i in range(samples_per_file):
+                    indicies = sorted(random.sample(list(range(total_points)), k=points))
+                    sampled_data = data[indicies]
+                    sampled_labels = labels[indicies]
+                    sampled_data_list.append(sampled_data)
+                    sampled_labels_list.append(sampled_labels)
 
-    raw_test_dir = os.path.abspath(os.path.join(TEST_DIR, 'raw_h5'))
-    raw_files = os.listdir(raw_test_dir)
+        # print(len(sampled_data_list))
+        convert_to_tfrecord(sampled_data_list, sampled_labels_list, tfrecord_file)
+        all_sampled_data_list += sampled_data_list
+        all_sampled_labels_list += sampled_labels_list
 
-    sampled_data_list = []
-    sampled_labels_list = []
-    for file in raw_files:
-        with h5py.File(os.path.join(raw_test_dir, file), "r") as h5_data:
-            data = np.asarray(h5_data['data'])
-            labels = np.asarray(h5_data['labels'])
-            total_points = len(data)
+    convert_to_tfrecord(all_sampled_data_list, all_sampled_labels_list, all_tfrecord_file)
 
-            for i in range(samples_per_file):
-                indicies = sorted(random.sample(list(range(total_points)), k=points))
-                sampled_data = data[indicies]
-                sampled_labels = labels[indicies]
-                sampled_data_list.append(sampled_data)
-                sampled_labels_list.append(sampled_labels)
-    print(len(sampled_data_list))
-    tfrecord_file = os.path.abspath(os.path.join(TEST_DIR, 'sampled', f'test.tfrecord'))
-    convert_to_tfrecord(sampled_data_list, sampled_labels_list, tfrecord_file)
+# def sample_test():
+#     points = 8192
+#     samples_per_file = 100
+#
+#     raw_test_dir = os.path.abspath(os.path.join(TEST_DIR, 'raw_h5'))
+#     raw_files = os.listdir(raw_test_dir)
+#
+#     sampled_data_list = []
+#     sampled_labels_list = []
+#     for file in raw_files:
+#         with h5py.File(os.path.join(raw_test_dir, file), "r") as h5_data:
+#             data = np.asarray(h5_data['data'])
+#             labels = np.asarray(h5_data['labels'])
+#             total_points = len(data)
+#
+#             for i in range(samples_per_file):
+#                 indicies = sorted(random.sample(list(range(total_points)), k=points))
+#                 sampled_data = data[indicies]
+#                 sampled_labels = labels[indicies]
+#                 sampled_data_list.append(sampled_data)
+#                 sampled_labels_list.append(sampled_labels)
+#     print(len(sampled_data_list))
+#     tfrecord_file = os.path.abspath(os.path.join(TEST_DIR, 'sampled', f'test.tfrecord'))
+#     convert_to_tfrecord(sampled_data_list, sampled_labels_list, tfrecord_file)
 
-def convert_test():
-    raw_test_dir = os.path.abspath(os.path.join(TEST_DIR, 'raw_h5'))
-    raw_files = os.listdir(raw_test_dir)
-    with h5py.File(os.path.join(raw_test_dir, raw_files[-1]), "r") as h5_data:
-        data = np.asarray(h5_data['data'])
-        labels = np.asarray(h5_data['labels'])
-        tfrecord_file = os.path.abspath(os.path.join(TEST_DIR, 'sampled', f'test_full.tfrecord'))
-        convert_to_tfrecord([data], [labels], tfrecord_file)
+def convert_vis():
+    tfrecord_file = os.path.abspath(os.path.join(DATA_SET_DIR, f'testBUT_TRAIN.tfrecord'))
+
+    data_list = []
+    labels_list = []
+
+    categories = os.listdir(TRAIN_H5)
+    for cat in categories:
+        print(f"\nCategory: {cat}")
+        cat_h5s = os.path.join(TRAIN_H5, cat)
+        files = os.listdir(cat_h5s)
+        for file in files:
+            print(f"Sampling {file}")
+            with h5py.File(os.path.join(cat_h5s, file), "r") as h5_data:
+                data = np.asarray(h5_data['data'])
+                labels = np.asarray(h5_data['labels'])
+                data_list.append(data)
+                labels_list.append(labels)
+
+        # print(len(sampled_data_list))
+    convert_to_tfrecord(data_list, labels_list, tfrecord_file)
+
 
 def convert_to_tfrecord(data_list, labels_list, file):
     with tf.io.TFRecordWriter(str(file)) as writer:
@@ -129,6 +260,8 @@ def _bytes_feature(value):
 
 
 if __name__ == '__main__':
-    # sample()
-    # sample_test()
-    convert_test()
+    # make_folders()
+    # split()
+    # sample(TRAIN_DIR)
+    # sample(VAL_DIR)
+    convert_vis()
