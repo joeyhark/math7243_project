@@ -14,11 +14,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow import keras
 
-from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
-
-import test_zimaging
+from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
+import pnet1_test_zimaging
 
 DATASET = "new4"
+
 
 tf.random.set_seed(42)
 
@@ -107,9 +107,8 @@ def load_test_dataset(in_file):
 
 def train():
 
-	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -146,6 +145,7 @@ def train():
 		verbose=1
 	)
 
+
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
     sparse_pcd = o3d.geometry.PointCloud()
     sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
@@ -168,14 +168,14 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_original_1',
+		'log_dir' : 'zimaging_pnet1_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
-		'batch_size' : 8,
+		'batch_size' : 4,
 		'num_classes' : 2,
 		'lr' : 0.001,
 		'bn' : False,
 	}
 
 	train()
-	test_zimaging.test(config)
+	pnet1_test_zimaging.test(config)

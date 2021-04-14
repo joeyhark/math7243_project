@@ -15,14 +15,25 @@ import tensorflow as tf
 from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
+from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
+import pnet2_test_zimaging
 
 DATASET = "new4"
 
-VISUALIZE = False
-SAMPLE = False
 
 tf.random.set_seed(42)
 
+# def parse_function(example_proto):
+# 	feature_description = {
+# 		'points': tf.io.FixedLenFeature([], tf.string, default_value=''),
+# 		'value': tf.io.FixedLenFeature([], tf.int64, default_value=123),
+# 		}
+#
+# 	parsed_1 = tf.io.parse_single_example(example_proto, feature_description)
+# 	# parsed_1['data'] = tf.io.parse_tensor(parsed_1['data'], out_type=tf.double)
+#
+# 	return tf.reshape(tf.io.parse_tensor(parsed_1['data'], out_type=tf.double),
+# 	 				  [-1,settings.DATA_SIZE]), tf.cast(tf.reshape(parsed_1['value'], [1]), tf.float32)
 
 def load_dataset(in_file, batch_size):
 	print(in_file)
@@ -95,103 +106,63 @@ def load_test_dataset(in_file):
 
 	return dataset
 
-
-def test(in_config=None):
-	if in_config:
-		config = in_config
-	test_ds = load_test_dataset(config['test_ds'])
+def train():
 
 	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
-	points = 35000
-	for x in test_ds:
-		data = x[0].numpy()
-		truth_labels = x[1].numpy().flatten()
-		# print(data.shape)
-		# print(truth_labels.shape)
-		# print(data)
-		# print(np.max(data))
-		# print(np.min(data))
-		# exit()
 
 
-		if SAMPLE:
-			indicies = sorted(random.sample(list(range(len(data))), k=points))
-			sampled_data = data[indicies]
-			sampled_labels = truth_labels[indicies]
-		else:
-			sampled_data = data
-			sampled_labels = truth_labels
+	train_ds = load_dataset(config['train_ds'], config['batch_size'])
+	val_ds = load_dataset(config['val_ds'], config['batch_size'])
+	test_ds = load_test_dataset(config['test_ds'])
+	# view_test_ds = load_test_dataset(config['view_ds'])
 
-		t1 = time.time()
-		eval = model([sampled_data])[0]
-		# print(eval)
-		print(f"model time: {time.time()-t1}")
-		eval = np.argmax(eval, axis=1)
-		# print(eval.shape)
-		wrong = sum(np.absolute(sampled_labels - eval))
-		print(f"test accuracy: {(len(sampled_labels)-wrong)/len(sampled_labels)}")
+	# for x in test_ds:
+	# 	print(x)
+	callbacks = [
+		keras.callbacks.TensorBoard(
+			'./logs/{}'.format(config['log_dir']), update_freq=50),
+		keras.callbacks.ModelCheckpoint(
+			'./logs/{}/model/weights'.format(config['log_dir']), 'val_sparse_categorical_accuracy', save_best_only=True),
+		tf.keras.callbacks.EarlyStopping(
+			monitor='val_loss', restore_best_weights=True, patience=3)
+	]
 
-		# print(eval)
-		# print(sum(eval))
+	model.build((config['batch_size'], 8192, 3))
+	print(model.summary())
 
-		head = sampled_data[eval.astype(bool)]
-		# print(head.shape)
-		# mean = np.mean(head, axis=0)
-		# print(mean)
-		#
-		# centered_head = head-mean
-		#
-		# print(distances)
-		# print(f"max: {max(distances)}")
-		# print(f"mean: {np.mean(distances)}")
-		# print(f"std: {np.std(distances)}")
-		#
-		# reduced_head = head[np.where(distances < 0.11, True, False)]
+	model.compile(
+		optimizer=keras.optimizers.Adam(config['lr']),
+		loss=keras.losses.SparseCategoricalCrossentropy(),
+		metrics=[keras.metrics.SparseCategoricalAccuracy()]
+	)
 
-		# print(f'len of head: {len(head)}')
-		# distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
-		# reduced_head = head[np.where(distances < (np.mean(distances)+(1*np.std(distances))), True, False)]
-		# print(f"reduced head len: {len(reduced_head)}")
-		reduced_head = head
+	model.fit(
+		train_ds,
+		validation_data=val_ds,
+		validation_steps=10,
+		validation_freq=1,
+		callbacks=callbacks,
+		epochs=100,
+		verbose=1
+	)
 
 
+def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
+    sparse_pcd = o3d.geometry.PointCloud()
+    sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
+    sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
 
-
-		# #interpolate
-		# t2 = time.time()
-		# # full_labels = interpolate_dense_labels(sampled_data, eval, data)
-		# utils.simple_knn(sampled_data, eval, data)
-		# print(f'interpolate time: {time.time()-t2}')
-
-		# full_head = data[np.asarray(full_labels).astype(bool)]
-		#
-		if VISUALIZE:
-			pcd = o3d.geometry.PointCloud()
-			pcd.points = o3d.utility.Vector3dVector(data)
-			o3d.visualization.draw_geometries([pcd])
-			#
-			pcd = o3d.geometry.PointCloud()
-			pcd.points = o3d.utility.Vector3dVector(reduced_head)
-			o3d.visualization.draw_geometries([pcd])
-
-		# pcd_full = o3d.geometry.PointCloud()
-		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
-		# o3d.visualization.draw_geometries([pcd_full])
-
-		# correct = 0
-		# wrong = 0
-		# for i in range(len(x[1].numpy())):
-		# 	if x[1][i] == eval[i]:
-		# 		correct += 1
-		# 	else:
-		# 		wrong += 1
-		# print(f"correct: {correct}")
-		# print(f"wrong: {wrong}")
-
-
+    dense_labels = []
+    for dense_point in dense_points:
+        _, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
+        )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return dense_labels
 
 if __name__ == '__main__':
 
@@ -200,7 +171,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_original_1',
+		'log_dir' : 'zimaging_pnet2_test1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
@@ -209,4 +180,5 @@ if __name__ == '__main__':
 		'bn' : False,
 	}
 
-	test(config)
+	train()
+	pnet2_test_zimaging.test(config)
