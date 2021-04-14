@@ -15,10 +15,11 @@ import tensorflow as tf
 from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
-
+from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
 import test_zimaging
 
 DATASET = "new4"
+
 
 tf.random.set_seed(42)
 
@@ -110,6 +111,9 @@ def train():
 	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+  #NOT FINISHED
+	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+
 
 	train_ds = load_dataset(config['train_ds'], config['batch_size'])
 	val_ds = load_dataset(config['val_ds'], config['batch_size'])
@@ -145,6 +149,7 @@ def train():
 		epochs=100,
 		verbose=1
 	)
+
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
     sparse_pcd = o3d.geometry.PointCloud()
