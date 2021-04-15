@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from shutil import copy
 
 
-DATASET = "new4"
+DATASET = "new9"
 TRAIN_PERCENT = 0.7
 
 SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
@@ -87,7 +87,7 @@ def split():
         cat_train_h5 = os.path.join(TRAIN_H5, cat)
         cat_train_dataset = os.path.join(TRAIN_DATASET, cat)
         cat_val_h5 = os.path.join(VAL_H5, cat)
-        cat_val_dataset = os.path.join(VAL_DATASET, cat)
+        # cat_val_dataset = os.path.join(VAL_DATASET, cat)
 
         try:
             os.mkdir(cat_train_h5)
@@ -101,10 +101,10 @@ def split():
             os.mkdir(cat_val_h5)
         except:
             pass
-        try:
-            os.mkdir(cat_val_dataset)
-        except:
-            pass
+        # try:
+        #     os.mkdir(cat_val_dataset)
+        # except:
+        #     pass
 
         scans = os.listdir(cat_h5)
         train_scans, val_scans = train_test_split(scans, train_size=float(TRAIN_PERCENT), shuffle=True)
@@ -116,7 +116,7 @@ def split():
 
 def sample(dir):
     points = 8192
-    samples_per_file = 100
+    samples_per_file = 500
 
     h5s = os.path.abspath(os.path.join(dir, 'h5_files'))
     dataset_dir = os.path.abspath(os.path.join(dir, "dataset"))
@@ -260,8 +260,8 @@ def _bytes_feature(value):
 
 
 if __name__ == '__main__':
-    # make_folders()
-    # split()
-    # sample(TRAIN_DIR)
-    # sample(VAL_DIR)
+    make_folders()
+    split()
+    sample(TRAIN_DIR)
+    sample(VAL_DIR)
     convert_vis()

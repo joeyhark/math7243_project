@@ -18,7 +18,7 @@ from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2
 from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
 import pnet2_test_zimaging
 
-DATASET = "new4"
+DATASET = "new9"
 
 
 tf.random.set_seed(42)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet2_test1',
+		'log_dir' : 'zimaging_pnet2_n9_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,

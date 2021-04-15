@@ -16,10 +16,11 @@ from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
 
-DATASET = "new4"
+DATASET = "new9"
 
 VISUALIZE = False
 SAMPLE = False
+INTERPOLATE = False
 
 tf.random.set_seed(42)
 
@@ -134,6 +135,17 @@ def test(in_config=None):
 		print(f"model time: {time.time()-t1}")
 
 		eval = np.argmax(all_eval, axis=1)
+
+		if INTERPOLATE:
+			#interpolate
+			t2 = time.time()
+			full_labels = interpolate_dense_labels(sampled_data, eval, data)
+			# utils.simple_knn(sampled_data, eval, data)
+			print(f'interpolate time: {time.time()-t2}')
+			eval = full_labels
+			sampled_data = data
+			sampled_labels = truth_labels
+
 		# print(eval.shape)
 		wrong = sum(np.absolute(sampled_labels - eval))
 		acc = (len(sampled_labels)-wrong)/len(sampled_labels)
@@ -144,17 +156,6 @@ def test(in_config=None):
 
 		head = sampled_data[eval.astype(bool)]
 		# print(head.shape)
-		# mean = np.mean(head, axis=0)
-		# print(mean)
-		#
-		# centered_head = head-mean
-		#
-		# print(distances)
-		# print(f"max: {max(distances)}")
-		# print(f"mean: {np.mean(distances)}")
-		# print(f"std: {np.std(distances)}")
-		#
-		# reduced_head = head[np.where(distances < 0.11, True, False)]
 
 		# print(f'len of head: {len(head)}')
 		# distances = np.linalg.norm(head-np.mean(head, axis=0), axis=1)
@@ -164,15 +165,6 @@ def test(in_config=None):
 
 
 
-
-		# #interpolate
-		# t2 = time.time()
-		# # full_labels = interpolate_dense_labels(sampled_data, eval, data)
-		# utils.simple_knn(sampled_data, eval, data)
-		# print(f'interpolate time: {time.time()-t2}')
-
-		# full_head = data[np.asarray(full_labels).astype(bool)]
-		#
 		if VISUALIZE:
 			pcd = o3d.geometry.PointCloud()
 			pcd.points = o3d.utility.Vector3dVector(data)
@@ -182,30 +174,37 @@ def test(in_config=None):
 			pcd.points = o3d.utility.Vector3dVector(reduced_head)
 			o3d.visualization.draw_geometries([pcd])
 
-		# pcd_full = o3d.geometry.PointCloud()
-		# pcd_full.points = o3d.utility.Vector3dVector(sampled_data)
-		# o3d.visualization.draw_geometries([pcd_full])
 
-		# correct = 0
-		# wrong = 0
-		# for i in range(len(x[1].numpy())):
-		# 	if x[1][i] == eval[i]:
-		# 		correct += 1
-		# 	else:
-		# 		wrong += 1
-		# print(f"correct: {correct}")
-		# print(f"wrong: {wrong}")
 
 	print(f"Overall accuracy: {np.mean(accuracies)}")
 
+def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
+    sparse_pcd = o3d.geometry.PointCloud()
+    sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
+    sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
+
+    dense_labels = []
+    for dense_point in dense_points:
+        _, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+            dense_point, k
+        )
+        knn_sparse_labels = sparse_labels[sparse_indexes]
+        dense_label = np.bincount(knn_sparse_labels).argmax()
+        dense_labels.append(dense_label)
+    return np.array(dense_labels)
+
+
 if __name__ == '__main__':
+	physical_devices = tf.config.list_physical_devices('GPU')
+	tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 	config = {
 		'train_ds' : f'data/{DATASET}/train/all.tfrecord',
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet2_test1',
+		'log_dir' : 'zimaging_pnet2_n9_1',
+		# 'log_dir' : 'zimaging_pnet2_test1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
