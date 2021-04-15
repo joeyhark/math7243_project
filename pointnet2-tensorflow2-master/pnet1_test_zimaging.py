@@ -17,7 +17,7 @@ from tensorflow import keras
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
 from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
 
-DATASET = "new4"
+DATASET = "new9"
 
 VISUALIZE = False
 #HAS TO BE TRUE FOR PNET 1
@@ -191,7 +191,7 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet1_1',
+		'log_dir' : 'zimaging_pnet1_n9_1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
