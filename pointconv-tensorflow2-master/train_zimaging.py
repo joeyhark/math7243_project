@@ -8,7 +8,7 @@ from model_scannet import PointConvModel
 from tensorflow import keras
 import tensorflow as tf
 
-tf.random.set_seed(1234)
+tf.random.set_seed(42)
 
 DATASET = "new4"
 

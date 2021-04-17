@@ -225,12 +225,9 @@ if __name__ == '__main__':
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
 		'log_dir' : 'zimaging_pconv_n9_1',
-		# 'log_dir' : 'zimaging_pnet2_test1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
-		'num_classes' : 2,
-		'lr' : 0.001,
 		'bn' : False,
 	}
 
