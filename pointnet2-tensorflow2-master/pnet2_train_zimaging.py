@@ -150,19 +150,19 @@ def train():
 
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
-    sparse_pcd = o3d.geometry.PointCloud()
-    sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
-    sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
+	sparse_pcd = o3d.geometry.PointCloud()
+	sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
+	sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
 
-    dense_labels = []
-    for dense_point in dense_points:
-        _, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-            dense_point, k
-        )
-        knn_sparse_labels = sparse_labels[sparse_indexes]
-        dense_label = np.bincount(knn_sparse_labels).argmax()
-        dense_labels.append(dense_label)
-    return dense_labels
+	dense_labels = []
+	for dense_point in dense_points:
+		_, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+			dense_point, k
+		)
+		knn_sparse_labels = sparse_labels[sparse_indexes]
+		dense_label = np.bincount(knn_sparse_labels).argmax()
+		dense_labels.append(dense_label)
+	return dense_labels
 
 if __name__ == '__main__':
 
