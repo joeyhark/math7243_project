@@ -189,7 +189,7 @@ def test(in_config=None):
 
 	print()
 	print(f"Mean model time: {np.mean(mtimes)}")
-	print(f"Mean model time: {np.mean(itimes)}")
+	print(f"Mean interpolate time: {np.mean(itimes)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
 	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
 	print(c_matrix)
