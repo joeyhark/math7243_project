@@ -8,18 +8,24 @@ import random
 from pnet2_layers import utils
 
 sys.path.insert(0, './')
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
 from tensorflow import keras
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
 from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
+import sklearn
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
 
 DATASET = "new9"
 
 VISUALIZE = False
+#sample down to 35000 points for time test
+SUPERSAMPLE = True
 #HAS TO BE TRUE FOR PNET 1
 SAMPLE = True
 
@@ -113,10 +119,18 @@ def test(in_config=None):
 
 	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
 	points = 8192
+	all_labels = []
+	all_predictions = []
+	mtimes = []
+	itimes = []
 	for x in test_ds:
 		data = x[0].numpy()
 		truth_labels = x[1].numpy().flatten()
 		# print(data.shape)
+		if SUPERSAMPLE:
+			indicies = sorted(random.sample(list(range(len(data))), k=35000))
+			data = data[indicies]
+			truth_labels = truth_labels[indicies]
 
 		if SAMPLE:
 			indicies = sorted(random.sample(list(range(len(data))), k=points))
@@ -130,7 +144,9 @@ def test(in_config=None):
 		t1 = time.time()
 		all_eval = model(sudo_batch)[0]
 		# print(eval)
-		print(f"model time: {time.time()-t1}")
+		mtime = time.time()-t1
+		print(f"model time: {mtime}")
+		mtimes.append(mtime)
 
 		eval = np.argmax(all_eval, axis=1)
 
@@ -138,7 +154,9 @@ def test(in_config=None):
 		t2 = time.time()
 		full_labels = interpolate_dense_labels(sampled_data, eval, data)
 		# utils.simple_knn(sampled_data, eval, data)
-		print(f'interpolate time: {time.time()-t2}')
+		itime = time.time()-t2
+		print(f'interpolate time: {itime}')
+		itimes.append(itime)
 
 		# print(eval.shape)
 		wrong = sum(np.absolute(truth_labels - full_labels))
@@ -146,6 +164,8 @@ def test(in_config=None):
 		print(f"test accuracy: {acc}")
 		accuracies.append(acc)
 
+		all_labels += truth_labels.tolist()
+		all_predictions += full_labels.tolist()
 
 		head = data[full_labels.astype(bool)]
 
@@ -167,7 +187,17 @@ def test(in_config=None):
 			o3d.visualization.draw_geometries([pcd])
 
 
+	print()
+	print(f"Mean model time: {np.mean(mtimes)}")
+	print(f"Mean model time: {np.mean(itimes)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
+	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
+	print(c_matrix)
+	df_cm = pd.DataFrame(c_matrix, index = ["Background", "Head"],
+                  columns = ["Background", "Head"])
+	plt.figure(figsize = (10,7))
+	sn.heatmap(df_cm, annot=True)
+	plt.show()
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
     sparse_pcd = o3d.geometry.PointCloud()

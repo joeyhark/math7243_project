@@ -15,11 +15,15 @@ import tensorflow as tf
 from tensorflow import keras
 
 from models.sem_seg_model import SEM_SEG_Model, original_SEM_SEG_Model, reduced2_SEM_SEG_Model
+import sklearn
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
 
 DATASET = "new9"
 
 VISUALIZE = False
-SAMPLE = False
+SAMPLE = True
 INTERPOLATE = False
 
 tf.random.set_seed(42)
@@ -110,6 +114,10 @@ def test(in_config=None):
 
 	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
 	points = 8192
+	points = 35000
+	all_labels = []
+	all_predictions = []
+	times = []
 	for x in test_ds:
 		data = x[0].numpy()
 		truth_labels = x[1].numpy().flatten()
@@ -132,7 +140,9 @@ def test(in_config=None):
 		t1 = time.time()
 		all_eval = model([sampled_data])[0]
 		# print(eval)
-		print(f"model time: {time.time()-t1}")
+		mtime = time.time()-t1
+		print(f"model time: {mtime}")
+		times.append(mtime)
 
 		eval = np.argmax(all_eval, axis=1)
 
@@ -153,6 +163,9 @@ def test(in_config=None):
 		accuracies.append(acc)
 		# print(eval)
 		# print(sum(eval))
+
+		all_labels += truth_labels.tolist()
+		all_predictions += eval.tolist()
 
 		head = sampled_data[eval.astype(bool)]
 		# print(head.shape)
@@ -176,7 +189,16 @@ def test(in_config=None):
 
 
 
+	print()
+	print(f"Mean model time: {np.mean(times)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
+	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
+	print(c_matrix)
+	df_cm = pd.DataFrame(c_matrix, index = ["Background", "Head"],
+                  columns = ["Background", "Head"])
+	plt.figure(figsize = (10,7))
+	sn.heatmap(df_cm, annot=True)
+	plt.show()
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
     sparse_pcd = o3d.geometry.PointCloud()
