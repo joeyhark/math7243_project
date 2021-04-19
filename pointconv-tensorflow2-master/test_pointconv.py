@@ -22,8 +22,12 @@ import matplotlib.pyplot as plt
 DATASET = "new9"
 
 VISUALIZE = False
-SAMPLE = True
-INTERPOLATE = True
+
+#sample down to 35000 points for time test
+SUPERSAMPLE = True
+
+SAMPLE = False
+INTERPOLATE = False
 
 tf.random.set_seed(42)
 
@@ -116,7 +120,8 @@ def test(in_config=None):
 	points = 35000
 	all_labels = []
 	all_predictions = []
-	times = []
+	mtimes = []
+	itimes = []
 	for x in test_ds:
 		data = x[0].numpy()
 		truth_labels = x[1].numpy().flatten()
@@ -126,7 +131,10 @@ def test(in_config=None):
 		# print(np.max(data))
 		# print(np.min(data))
 		# exit()
-
+		if SUPERSAMPLE:
+			indicies = sorted(random.sample(list(range(len(data))), k=35000))
+			data = data[indicies]
+			truth_labels = truth_labels[indicies]
 
 		if SAMPLE:
 			indicies = sorted(random.sample(list(range(len(data))), k=points))
@@ -141,7 +149,7 @@ def test(in_config=None):
 		# print(eval)
 		mtime = time.time()-t1
 		print(f"model time: {mtime}")
-		times.append(mtime)
+		mtimes.append(mtime)
 
 		eval = np.argmax(all_eval, axis=1)
 
@@ -150,7 +158,9 @@ def test(in_config=None):
 			t2 = time.time()
 			full_labels = interpolate_dense_labels(sampled_data, eval, data)
 			# utils.simple_knn(sampled_data, eval, data)
-			print(f'interpolate time: {time.time()-t2}')
+			itime = time.time()-t2
+			print(f'interpolate time: {itime}')
+			itimes.append(itime)
 			eval = full_labels
 			sampled_data = data
 			sampled_labels = truth_labels
@@ -189,14 +199,31 @@ def test(in_config=None):
 
 
 	print()
-	print(f"Mean model time: {np.mean(times)}")
+	print(f"Mean model time: {np.mean(mtimes)}")
+	# print(f"Mean interpolate time: {np.mean(itimes)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
+	print(f"Min accuracy: {min(accuracies)}")
+	print(f"Max accuracy: {max(accuracies)}")
 	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
 	print(c_matrix)
 	df_cm = pd.DataFrame(c_matrix, index = ["Background", "Head"],
                   columns = ["Background", "Head"])
-	plt.figure(figsize = (10,7))
-	sn.heatmap(df_cm, annot=True)
+	# plt.figure(figsize = (10,7))
+	# sn.heatmap(df_cm, annot=True)
+	# plt.show()
+
+	cf_matrix = c_matrix
+	group_names = ['True Neg','False Pos','False Neg','True Pos']
+	group_counts = ["{0:0.0f}".format(value) for value in
+	                cf_matrix.flatten()]
+	group_percentages = ["{0:.2%}".format(value) for value in
+	                     cf_matrix.flatten()/np.sum(cf_matrix)]
+	labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in
+	          zip(group_names,group_counts,group_percentages)]
+	labels = np.asarray(labels).reshape(2,2)
+	sn.heatmap(df_cm, annot=labels, fmt='', cmap='Blues')
+
+	plt.hist(accuracies)
 	plt.show()
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):

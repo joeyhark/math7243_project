@@ -21,7 +21,7 @@ import pnet2_test_zimaging
 DATASET = "new9"
 
 
-tf.random.set_seed(42)
+# tf.random.set_seed(42)
 
 # def parse_function(example_proto):
 # 	feature_description = {
@@ -126,7 +126,7 @@ def train():
 		keras.callbacks.ModelCheckpoint(
 			'./logs/{}/model/weights'.format(config['log_dir']), 'val_sparse_categorical_accuracy', save_best_only=True),
 		tf.keras.callbacks.EarlyStopping(
-			monitor='val_loss', restore_best_weights=True, patience=3)
+			monitor='val_loss', restore_best_weights=True, patience=5)
 	]
 
 	model.build((config['batch_size'], 8192, 3))
@@ -144,7 +144,7 @@ def train():
 		validation_steps=10,
 		validation_freq=1,
 		callbacks=callbacks,
-		epochs=100,
+		epochs=1000,
 		verbose=1
 	)
 
@@ -171,12 +171,12 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet2_n9_1',
+		'log_dir' : 'zimaging_pnet2_n9_lr=0.0005',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
 		'num_classes' : 2,
-		'lr' : 0.001,
+		'lr' : 0.0005,
 		'bn' : False,
 	}
 

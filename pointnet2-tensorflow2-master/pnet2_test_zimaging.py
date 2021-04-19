@@ -23,7 +23,9 @@ import matplotlib.pyplot as plt
 DATASET = "new9"
 
 VISUALIZE = False
-SAMPLE = True
+MIN_VIS = 1
+MAX_VIS = 0.99
+SAMPLE = False
 INTERPOLATE = False
 
 tf.random.set_seed(42)
@@ -105,6 +107,7 @@ def test(in_config=None):
 	if in_config:
 		config = in_config
 	test_ds = load_test_dataset(config['test_ds'], config['batch_size'])
+	# test_ds = load_test_dataset(config['val_ds'], config['batch_size'])
 
 	model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
@@ -178,7 +181,7 @@ def test(in_config=None):
 
 
 
-		if VISUALIZE:
+		if VISUALIZE and acc < MIN_VIS and acc >= MAX_VIS:
 			pcd = o3d.geometry.PointCloud()
 			pcd.points = o3d.utility.Vector3dVector(data)
 			o3d.visualization.draw_geometries([pcd])
@@ -191,13 +194,32 @@ def test(in_config=None):
 
 	print()
 	print(f"Mean model time: {np.mean(times)}")
+	# print(f"Mean interpolate time: {np.mean(itimes)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
+	print(f"Min accuracy: {min(accuracies)}")
+	print(f"Max accuracy: {max(accuracies)}")
 	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
 	print(c_matrix)
 	df_cm = pd.DataFrame(c_matrix, index = ["Background", "Head"],
                   columns = ["Background", "Head"])
-	plt.figure(figsize = (10,7))
-	sn.heatmap(df_cm, annot=True)
+	# plt.figure(figsize = (10,7))
+	# sn.heatmap(df_cm, annot=True)
+	# plt.show()
+	cf_matrix = c_matrix
+	group_names = ['True Neg','False Pos','False Neg','True Pos']
+	group_counts = ["{0:0.0f}".format(value) for value in
+	                cf_matrix.flatten()]
+	group_percentages = ["{0:.2%}".format(value) for value in
+	                     cf_matrix.flatten()/np.sum(cf_matrix)]
+	labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in
+	          zip(group_names,group_counts,group_percentages)]
+	labels = np.asarray(labels).reshape(2,2)
+	sn.heatmap(df_cm, annot=labels, fmt='', cmap='Blues')
+
+	plt.hist(accuracies)
+	plt.show()
+
+	plt.hist(accuracies)
 	plt.show()
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
@@ -225,13 +247,13 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet2_n9_1',
+		'log_dir' : 'zimaging_pnet2_n9_lr=0.0005',
 		# 'log_dir' : 'zimaging_pnet2_test1',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
 		'num_classes' : 2,
-		'lr' : 0.001,
+		'lr' : 0.0005,
 		'bn' : False,
 	}
 
