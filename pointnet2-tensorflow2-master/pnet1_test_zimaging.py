@@ -27,10 +27,9 @@ VISUALIZE = False
 MIN_VIS = 1
 MAX_VIS = 0.99
 #sample down to 35000 points for time test
-SUPERSAMPLE = False
-#HAS TO BE TRUE FOR PNET 1
-SAMPLE = True
-
+SUPERSAMPLE = True
+#stack if not sample
+SAMPLE = False
 tf.random.set_seed(42)
 
 
@@ -125,7 +124,9 @@ def test(in_config=None):
 	all_predictions = []
 	mtimes = []
 	itimes = []
+	atimes = []
 	for x in test_ds:
+		t0 = time.time()
 		data = x[0].numpy()
 		truth_labels = x[1].numpy().flatten()
 		# print(data.shape)
@@ -134,31 +135,73 @@ def test(in_config=None):
 			data = data[indicies]
 			truth_labels = truth_labels[indicies]
 
+
+
 		if SAMPLE:
 			indicies = sorted(random.sample(list(range(len(data))), k=points))
 			sampled_data = data[indicies]
 			sampled_labels = truth_labels[indicies]
+
+			sudo_batch = np.repeat([sampled_data], 4, axis=0)
+			t1 = time.time()
+			all_eval = model(sudo_batch)[0]
+			# print(eval)
+			mtime = time.time()-t1
+			print(f"model time: {mtime}")
+			mtimes.append(mtime)
+			eval = np.argmax(all_eval, axis=1)
+
+			t2 = time.time()
+			full_labels = interpolate_dense_labels(sampled_data, eval, data)
+			# utils.simple_knn(sampled_data, eval, data)
+			itime = time.time()-t2
+			print(f'interpolate time: {itime}')
+			itimes.append(itime)
+
 		else:
-			sampled_data = data
-			sampled_labels = truth_labels
+			#stack
+			z = list(zip(data, truth_labels))
+			random.shuffle(z)
+			data, truth_labels = zip(*z)
+			truth_labels = np.array(truth_labels)
 
-		sudo_batch = np.repeat([sampled_data], 4, axis=0)
-		t1 = time.time()
-		all_eval = model(sudo_batch)[0]
-		# print(eval)
-		mtime = time.time()-t1
-		print(f"model time: {mtime}")
-		mtimes.append(mtime)
+			stack = []
+			n = len(data)
+			four_bin = 8192*4
+			if n % four_bin != 0:
+				bins = n//four_bin + 1
+				data_expanded = data + data[:four_bin-(n-((bins-1)*four_bin))]
+			else:
+				bins = n//four_bin
+				data_expanded = data
+			data = np.array(data)
+			data_binned = np.reshape(data_expanded, [-1,4,8192,3])
+			# print(data_binned.shape)
+			all_evals = []
+			mtime_total = 0
+			for data_bin in data_binned:
+				data_bin = tf.convert_to_tensor(data_bin)
+				# print(data_bin.shape)
+				t1 = time.time()
+				bin_eval = model(data_bin).numpy()
+				mtime = time.time()-t1
+				mtime_total += mtime
 
-		eval = np.argmax(all_eval, axis=1)
-
+				# print(bin_eval.shape)
+				bin_eval = np.argmax(np.reshape(bin_eval, [-1,2]), axis=1)
+				# print(bin_eval.shape)
+				all_evals += list(bin_eval)
+			full_labels = np.array(all_evals).flatten()[:n]
+			# print(full_labels)
+			print(f"model time: {mtime_total}")
+			mtimes.append(mtime_total)
+			
+		atime = time.time()-t0
+		print(f"all time: {atime}")
+		atimes.append(atime)
 		#interpolate
-		t2 = time.time()
-		full_labels = interpolate_dense_labels(sampled_data, eval, data)
-		# utils.simple_knn(sampled_data, eval, data)
-		itime = time.time()-t2
-		print(f'interpolate time: {itime}')
-		itimes.append(itime)
+
+
 
 		# print(eval.shape)
 		wrong = sum(np.absolute(truth_labels - full_labels))
@@ -191,7 +234,9 @@ def test(in_config=None):
 
 	print()
 	print(f"Mean model time: {np.mean(mtimes)}")
-	print(f"Mean interpolate time: {np.mean(itimes)}")
+	print(f"Mean all time: {np.mean(atimes)}")
+	if SAMPLE:
+		print(f"Mean interpolate time: {np.mean(itimes)}")
 	print(f"Overall accuracy: {np.mean(accuracies)}")
 	print(f"Min accuracy: {min(accuracies)}")
 	print(f"Max accuracy: {max(accuracies)}")
