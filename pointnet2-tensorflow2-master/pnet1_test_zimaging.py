@@ -195,7 +195,7 @@ def test(in_config=None):
 			# print(full_labels)
 			print(f"model time: {mtime_total}")
 			mtimes.append(mtime_total)
-			
+
 		atime = time.time()-t0
 		print(f"all time: {atime}")
 		atimes.append(atime)
@@ -284,7 +284,8 @@ if __name__ == '__main__':
 		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
 		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
 		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet1_n9_lr=0.0001',
+		# 'log_dir' : 'zimaging_pnet1_n9_lr=0.0001',
+		'log_dir' : 'zimaging_pnet1_n9_lr=0.0005',
 		'log_freq' : 10,
 		'test_freq' : 100,
 		'batch_size' : 4,
