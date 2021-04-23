@@ -29,7 +29,7 @@ MAX_VIS = 0.99
 #sample down to 35000 points for time test
 SUPERSAMPLE = True
 #stack if not sample
-SAMPLE = False
+SAMPLE = True
 tf.random.set_seed(42)
 
 
