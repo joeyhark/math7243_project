@@ -5,6 +5,7 @@ import numpy as np
 import open3d as o3d
 import time
 import random
+import h5py
 from pnet2_layers import utils
 
 sys.path.insert(0, './')
@@ -22,6 +23,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 DATASET = "new9"
+
+CATS = True
 
 VISUALIZE = False
 MIN_VIS = 1
@@ -108,18 +111,54 @@ def load_test_dataset(in_file, batch_size):
 def test(in_config=None):
 	if in_config:
 		config = in_config
-	test_ds = load_test_dataset(config['test_ds'], config['batch_size'])
+
+	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
+	points = 8192
+
+	if CATS:
+		h5_dir = f"data/{DATASET}/val/h5_files/"
+		categories = os.listdir(h5_dir)
+		res_dict = {}
+		for category in categories:
+			all_labels = []
+			all_predictions = []
+			for scene in os.listdir(h5_dir + category):
+				print(f"Evaluating {category + '/' + scene}")
+				with h5py.File(h5_dir + category +"/" + scene, "r") as h5_data:
+					data = np.asarray(h5_data['data'])
+					truth_labels = np.asarray(h5_data['labels'])
+					# scenes.append((data, labels))
+					indicies = sorted(random.sample(list(range(len(data))), k=points))
+					sampled_data = data[indicies]
+					sampled_labels = truth_labels[indicies]
+
+					sudo_batch = np.repeat([sampled_data], 4, axis=0)
+					all_eval = model(sudo_batch)[0]
+					eval = np.argmax(all_eval, axis=1)
+
+					full_labels = interpolate_dense_labels(sampled_data, eval, data)
+
+					all_labels += truth_labels.tolist()
+					all_predictions += full_labels.tolist()
+
+					head = data[full_labels.astype(bool)]
+					reduced_head = head
+			c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy().tolist()
+			all_wrong = sum(np.absolute(np.array(all_labels) - np.array(all_predictions)))
+			acc = (len(all_labels)-all_wrong)/len(all_labels)
+			res_dict[category] = (acc, c_matrix)
+		print(res_dict)
+		return
+	else:
+		test_ds = load_test_dataset(config['test_ds'], config['batch_size'])
 
 	# model = original_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 	# model = reduced2_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
-  	#NOT FINISHED
-	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
 	accuracies = []
 
-	model.load_weights('./logs/{}/model/weights'.format(config['log_dir']))
-	points = 8192
 	all_labels = []
 	all_predictions = []
 	mtimes = []
@@ -243,7 +282,7 @@ def test(in_config=None):
 	c_matrix = tf.math.confusion_matrix(all_labels, all_predictions).numpy()
 	print(c_matrix)
 	df_cm = pd.DataFrame(c_matrix, index = ["Background", "Head"],
-                  columns = ["Background", "Head"])
+				  columns = ["Background", "Head"])
 	# plt.figure(figsize = (10,7))
 	# sn.heatmap(df_cm, annot=True)
 	# plt.show()
@@ -251,11 +290,11 @@ def test(in_config=None):
 	cf_matrix = c_matrix
 	group_names = ['True Neg','False Pos','False Neg','True Pos']
 	group_counts = ["{0:0.0f}".format(value) for value in
-	                cf_matrix.flatten()]
+					cf_matrix.flatten()]
 	group_percentages = ["{0:.2%}".format(value) for value in
-	                     cf_matrix.flatten()/np.sum(cf_matrix)]
+						 cf_matrix.flatten()/np.sum(cf_matrix)]
 	labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in
-	          zip(group_names,group_counts,group_percentages)]
+			  zip(group_names,group_counts,group_percentages)]
 	labels = np.asarray(labels).reshape(2,2)
 	sn.heatmap(df_cm, annot=labels, fmt='', cmap='Blues')
 
@@ -263,19 +302,19 @@ def test(in_config=None):
 	plt.show()
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
-    sparse_pcd = o3d.geometry.PointCloud()
-    sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
-    sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
+	sparse_pcd = o3d.geometry.PointCloud()
+	sparse_pcd.points = o3d.utility.Vector3dVector(sparse_points)
+	sparse_pcd_tree = o3d.geometry.KDTreeFlann(sparse_pcd)
 
-    dense_labels = []
-    for dense_point in dense_points:
-        _, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
-            dense_point, k
-        )
-        knn_sparse_labels = sparse_labels[sparse_indexes]
-        dense_label = np.bincount(knn_sparse_labels).argmax()
-        dense_labels.append(dense_label)
-    return np.array(dense_labels)
+	dense_labels = []
+	for dense_point in dense_points:
+		_, sparse_indexes, _ = sparse_pcd_tree.search_knn_vector_3d(
+			dense_point, k
+		)
+		knn_sparse_labels = sparse_labels[sparse_indexes]
+		dense_label = np.bincount(knn_sparse_labels).argmax()
+		dense_labels.append(dense_label)
+	return np.array(dense_labels)
 
 if __name__ == '__main__':
 
