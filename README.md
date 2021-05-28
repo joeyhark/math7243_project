@@ -1,12 +1,7 @@
-# math7243_project
+# Semantic Segmentation of Pointclouds for Neurosurgery
+*Prepared by Ty Marking, Joseph Harkness, Jose Zamora Orellana, and Huynh Nguyen  
+Special thanks to Jose Amich, Raahil Sha, and the rest of the Z-Imaging team for the opportunity and support.*
 
-PointNet console outputs:
+Devloped from January to May 2021, this project proposes various convolutional neural networks for semantic segmentation of facial pointclouds for Z-Imaging (a part of Zeta Surgical). Z-Imaging develops augmented reality tools to aid neurosurgery. One of Z-Imaging's tools aimed to overlay CT scans or MRIs onto the patient in real time; the bounding space for this overlay is obtained through 3D image captures, producing pointclouds. The aim of this project is to segment the face from these captures in less than 250 milliseconds to allow for real time overlay.
 
-Accuracy test (knn interpolation)
-![knn](/images/pnet1_log_knn.png)
-
-Accuracy test (batching)
-![batching](/images/pnet1_log_batching.png)
-
-Speed test
-![speed](/images/pnet1_log_sampled_batching)
+This project tests the use of three existing networks: [PointNet](https://arxiv.org/abs/1612.00593), [PointNet++](https://arxiv.org/abs/1706.02413), and [PointConv](https://arxiv.org/abs/1811.07246). PointNet and PointNet++ were implemented by working off of Charles Qi's implementations and PointConv worked off of David Griffith's [implementation](https://github.com/dgriffiths3/pointconv-tensorflow2). Data was obtained directly from Z-Imaging's 3D captures. Results can be found in the [paper and presentation](https://drive.google.com/drive/folders/1aj4wYhVRlvWiSOjzZRXWc6KoW8mgTZ1G?usp=sharing) prepared for He Wang's [Machine Learning and Statistical Learning Theory](https://tipthederiver.github.io/Math-7243-2020/index.html) course at Northeastern University.
