@@ -8,14 +8,14 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.neighbors import KDTree
-
 from .cpp_modules import (
-	farthest_point_sample,
-	gather_point,
-	query_ball_point,
-	group_point,
+    farthest_point_sample,
+    gather_point,
+    query_ball_point,
+    group_point,
     three_nn
 )
+
 
 def knn_kdtree(nsample, xyz, new_xyz):
     batch_size = xyz.shape[0]
@@ -32,7 +32,6 @@ def knn_kdtree(nsample, xyz, new_xyz):
 
 
 def kernel_density_estimation_ball(pts, radius, sigma, N_points=128, is_norm=False):
-
     idx, pts_cnt = query_ball_point(radius, N_points, pts, pts)
     g_pts = group_point(pts, idx)
     g_pts -= tf.tile(tf.expand_dims(pts, 2), [1, 1, N_points, 1])
@@ -104,13 +103,13 @@ def kernel_density_estimation(pts, sigma, kpoint=32, is_norm=False):
 
 
 def sampling(npoint, pts):
-    '''
+    """
     inputs:
     npoint: scalar, number of points to sample
     pointcloud: B * N * 3, input point cloud
     output:
     sub_pts: B * npoint * 3, sub-sampled point cloud
-    '''
+    """
 
     sub_pts = gather_point(
         pts, farthest_point_sample(npoint, pts))
@@ -118,11 +117,11 @@ def sampling(npoint, pts):
 
 
 def grouping(feature, K, src_xyz, q_xyz, use_xyz=True):
-    '''
+    """
     K: neighbor size
     src_xyz: original point xyz (batch_size, ndataset, 3)
     q_xyz: query point xyz (batch_size, npoint, 3)
-    '''
+    """
 
     batch_size = src_xyz.get_shape()[0]
     npoint = q_xyz.get_shape()[1]
@@ -148,7 +147,6 @@ def grouping(feature, K, src_xyz, q_xyz, use_xyz=True):
 
 
 def grouping_all(feature, src_xyz, use_xyz=True):
-
     batch_size = src_xyz.get_shape()[0]
     npoint = src_xyz.get_shape()[1]
 
@@ -174,7 +172,8 @@ def grouping_all(feature, src_xyz, use_xyz=True):
 
 class Conv2d(keras.layers.Layer):
 
-    def __init__(self, filters, strides=[1, 1], activation=tf.nn.relu, padding='VALID', initializer='glorot_normal', bn=False):
+    def __init__(self, filters, strides=[1, 1], activation=tf.nn.relu, padding='VALID', initializer='glorot_normal',
+                 bn=False):
         super(Conv2d, self).__init__()
 
         self.filters = filters
@@ -201,7 +200,9 @@ class Conv2d(keras.layers.Layer):
     def call(self, inputs, training=True):
 
         points = tf.nn.conv2d(inputs, filters=self.w, strides=self.strides, padding=self.padding)
-        if self.bn:points = self.bn_layer(points, training=training)
-        if self.activation:points = self.activation(points)
+        if self.bn:
+            points = self.bn_layer(points, training=training)
+        if self.activation:
+            points = self.activation(points)
 
         return points

@@ -1,12 +1,10 @@
 import os
 import sys
-
-sys.path.insert(0, './')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-from model_scannet import PointConvModel
+from pointconv.model_scannet import PointConvModel
 from tensorflow import keras
 import tensorflow as tf
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 tf.random.set_seed(1234)
 

@@ -8,11 +8,10 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from shutil import copy
 
-
 DATASET = "new9"
 TRAIN_PERCENT = 0.7
 
-SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
+SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 DATA_DIR = os.path.abspath(os.path.join(SUP_DIR, 'data'))
 DATA_SET_DIR = os.path.abspath(os.path.join(DATA_DIR, DATASET))
 H5_DIR = os.path.join(DATA_SET_DIR, "h5_files")
@@ -24,6 +23,7 @@ TRAIN_DATASET = os.path.join(TRAIN_DIR, "dataset")
 VAL_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'val'))
 VAL_H5 = os.path.join(VAL_DIR, "h5_files")
 VAL_DATASET = os.path.join(VAL_DIR, "dataset")
+
 
 # TEST_DIR = os.path.abspath(os.path.join(DATA_SET_DIR, 'val'))
 # TEST_H5 = os.path.join(VAL_DIR, "h5_files")
@@ -79,8 +79,8 @@ def make_folders():
     # except:
     #     pass
 
-def split():
 
+def split():
     categories = os.listdir(H5_DIR)
     for cat in categories:
         cat_h5 = os.path.join(H5_DIR, cat)
@@ -154,6 +154,7 @@ def sample(dir):
 
     convert_to_tfrecord(all_sampled_data_list, all_sampled_labels_list, all_tfrecord_file)
 
+
 # def sample_test():
 #     points = 8192
 #     samples_per_file = 100
@@ -206,7 +207,7 @@ def convert_to_tfrecord(data_list, labels_list, file):
     with tf.io.TFRecordWriter(str(file)) as writer:
         # for each example
         for i in range(len(data_list)):
-            # create an item in the datset converted to the correct formats (float, int, byte)
+            # create an item in the dataset converted to the correct formats (float, int, byte)
             example = serialize_example(
                 {
                     "points": {
@@ -223,7 +224,6 @@ def convert_to_tfrecord(data_list, labels_list, file):
             # write the defined example into the dataset
             # print('writing')
             writer.write(example)
-
 
 
 def serialize_example(example):
@@ -250,13 +250,12 @@ def _int64_feature(value):
     """Returns an int64_list from a bool / enum / int / uint."""
     return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
+
 def _bytes_feature(value):
-  """Returns a bytes_list from a string / byte."""
-  if isinstance(value, type(tf.constant(0))):
-    value = value.numpy() # BytesList won't unpack a string from an EagerTensor.
-  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
+    """Returns a bytes_list from a string / byte."""
+    if isinstance(value, type(tf.constant(0))):
+        value = value.numpy()  # BytesList won't unpack a string from an EagerTensor.
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
 if __name__ == '__main__':

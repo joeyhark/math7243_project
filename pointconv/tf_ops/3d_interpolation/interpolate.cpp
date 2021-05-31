@@ -15,7 +15,7 @@ static double get_time(){
     return tp.tv_sec+tp.tv_nsec*1e-9;
 }
 
-// Find three nearest neigbors with square distance
+// Find three nearest neighbors with square distance
 // input: xyz1 (b,n,3), xyz2(b,m,3)
 // output: dist (b,n,3), idx (b,n,3)
 void threenn_cpu(int b, int n, int m, const float *xyz1, const float *xyz2, float *dist, int *idx) {

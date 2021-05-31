@@ -3,7 +3,6 @@ import sys
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import ops
-
 from tensorflow.keras.layers import MaxPool1D, Layer
 
 sampling_module = tf.load_op_library('./tf_ops/sampling/tf_sampling_so.so')
@@ -79,7 +78,7 @@ def knn_point(k, xyz1, xyz2):
 	idx = tf.slice(outi, [0, 0, 0], [-1, -1, k])
 	val = tf.slice(out, [0, 0, 0], [-1, -1, k])
 	print(idx, val)
-	#val, idx = tf.nn.top_k(-dist, k=k) # ONLY SUPPORT CPU
+	# val, idx = tf.nn.top_k(-dist, k=k) # ONLY SUPPORT CPU
 	return val, idx
 
 

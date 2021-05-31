@@ -3,19 +3,20 @@ import os
 import numpy as np
 import h5py
 
-
 DATASET = "new9"
 
-SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname( __file__ ))))
+SUP_DIR = os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 DATA_DIR = os.path.abspath(os.path.join(SUP_DIR, 'data'))
 DATA_SET_DIR = os.path.abspath(os.path.join(DATA_DIR, DATASET))
 RAW_SCANS = os.path.abspath(os.path.join(DATA_SET_DIR, 'raw_scans'))
 H5_DIR = os.path.join(DATA_SET_DIR, "h5_files")
 
+
 # def downsample(pcd):
 #     print("Downsample the point cloud with a voxel of 0.005")
 #     downpcd = pcd.voxel_down_sample(voxel_size=0.005)
 #     o3d.visualization.draw_geometries([downpcd])
+
 
 def convert_scans():
     try:
@@ -44,7 +45,7 @@ def convert_scans():
             head_data = set([tuple(point) for point in head_data])
             labels = [point in head_data for point in data]
 
-            #Verify all the points got selected
+            # Verify all the points got selected
             head_selected = np.array(data)[labels]
             if len(head_selected) != len(head_data):
                 print(f"\n\nNot all head points were labeled! ({len(head_selected)}/{len(head_data)}%)\n\n")

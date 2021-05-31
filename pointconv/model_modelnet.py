@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-
-from pointconv.layers import PointConvSA
+from pointconv.pointconv.layers import PointConvSA
 
 
 class PointConvModel(keras.Model):
@@ -18,7 +17,6 @@ class PointConvModel(keras.Model):
         self.bn = bn
 
         self.init_network()
-
 
     def init_network(self):
 
@@ -72,7 +70,7 @@ class PointConvModel(keras.Model):
 
         net = self.dense2(net)
         net = self.dropout2(net)
-        
+
         pred = self.dense3(net)
 
         return pred

@@ -6,22 +6,18 @@ import open3d as o3d
 import time
 import random
 import json
-from pnet2_layers import utils
-
-sys.path.insert(0, './')
+from pointnet.pnet2_layers import utils
+import tensorflow as tf
+from tensorflow import keras
+from pointnet.models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
+import pointnet.pnet1_test_zimaging
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-import tensorflow as tf
-from tensorflow import keras
-
-from models.pointnet_sem_seg_model import pointnet_SEM_SEG_Model
-import pnet1_test_zimaging
-
 DATASET = "new9"
 
-
 tf.random.set_seed(42)
+
 
 # def parse_function(example_proto):
 # 	feature_description = {
@@ -35,118 +31,117 @@ tf.random.set_seed(42)
 # 	return tf.reshape(tf.io.parse_tensor(parsed_1['data'], out_type=tf.double),
 # 	 				  [-1,settings.DATA_SIZE]), tf.cast(tf.reshape(parsed_1['value'], [1]), tf.float32)
 
+
 def load_dataset(in_file, batch_size):
-	print(in_file)
-	assert os.path.isfile(in_file), '[error] dataset path not found'
+    print(in_file)
+    assert os.path.isfile(in_file), '[error] dataset path not found'
 
-	n_points = 8192
-	shuffle_buffer = 1000
+    n_points = 8192
+    shuffle_buffer = 1000
 
-	def _extract_fn(data_record):
+    def _extract_fn(data_record):
+        in_features = {
+            'points': tf.io.FixedLenFeature([], tf.string),
+            'label': tf.io.FixedLenFeature([], tf.string)
+        }
+        parsed_1 = tf.io.parse_single_example(data_record, in_features)
+        return tf.reshape(tf.io.parse_tensor(parsed_1['points'], out_type=tf.double),
+                          [-1, 3]), tf.cast(tf.reshape(tf.io.parse_tensor(parsed_1['label'], out_type=tf.bool), [-1]),
+                                            tf.int64)
 
-		in_features = {
-			'points': tf.io.FixedLenFeature([], tf.string),
-			'label': tf.io.FixedLenFeature([], tf.string)
-		}
-		parsed_1 = tf.io.parse_single_example(data_record, in_features)
-		return tf.reshape(tf.io.parse_tensor(parsed_1['points'], out_type=tf.double),
-						  [-1,3]), tf.cast(tf.reshape(tf.io.parse_tensor(parsed_1['label'], out_type=tf.bool), [-1]), tf.int64)
+    def _preprocess_fn(points, labels):
+        # points = sample['points']
+        # labels = sample['labels']
 
-	def _preprocess_fn(points, labels):
+        points = tf.reshape(points, (n_points, 3))
+        labels = tf.reshape(labels, (n_points, 1))
 
-		# points = sample['points']
-		# labels = sample['labels']
+        shuffle_idx = tf.range(points.shape[0])
+        shuffle_idx = tf.random.shuffle(shuffle_idx)
+        points = tf.gather(points, shuffle_idx)
+        labels = tf.gather(labels, shuffle_idx)
 
-		points = tf.reshape(points, (n_points, 3))
-		labels = tf.reshape(labels, (n_points, 1))
+        return points, labels
 
-		shuffle_idx = tf.range(points.shape[0])
-		shuffle_idx = tf.random.shuffle(shuffle_idx)
-		points = tf.gather(points, shuffle_idx)
-		labels = tf.gather(labels, shuffle_idx)
+    dataset = tf.data.TFRecordDataset(in_file)
+    dataset = dataset.shuffle(shuffle_buffer)
+    dataset = dataset.map(_extract_fn)
+    dataset = dataset.map(_preprocess_fn)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
 
-		return points, labels
-
-	dataset = tf.data.TFRecordDataset(in_file)
-	dataset = dataset.shuffle(shuffle_buffer)
-	dataset = dataset.map(_extract_fn)
-	dataset = dataset.map(_preprocess_fn)
-	dataset = dataset.batch(batch_size, drop_remainder=True)
-
-	return dataset
+    return dataset
 
 
 def load_test_dataset(in_file):
+    assert os.path.isfile(in_file), '[error] dataset path not found'
 
-	assert os.path.isfile(in_file), '[error] dataset path not found'
+    def _extract_fn(data_record):
+        in_features = {
+            'points': tf.io.FixedLenFeature([], tf.string),
+            'label': tf.io.FixedLenFeature([], tf.string)
+        }
+        parsed_1 = tf.io.parse_single_example(data_record, in_features)
+        return tf.reshape(tf.io.parse_tensor(parsed_1['points'], out_type=tf.double),
+                          [-1, 3]), tf.cast(tf.reshape(tf.io.parse_tensor(parsed_1['label'], out_type=tf.bool), [-1]),
+                                            tf.int64)
 
-	def _extract_fn(data_record):
+    def _preprocess_fn(points, labels):
+        # points = sample['points']
+        # labels = sample['labels']
 
-		in_features = {
-			'points': tf.io.FixedLenFeature([], tf.string),
-			'label': tf.io.FixedLenFeature([], tf.string)
-		}
-		parsed_1 = tf.io.parse_single_example(data_record, in_features)
-		return tf.reshape(tf.io.parse_tensor(parsed_1['points'], out_type=tf.double),
-						  [-1,3]), tf.cast(tf.reshape(tf.io.parse_tensor(parsed_1['label'], out_type=tf.bool), [-1]), tf.int64)
+        points = tf.reshape(points, (-1, 3))
+        labels = tf.reshape(labels, (-1, 1))
 
-	def _preprocess_fn(points, labels):
+        return points, labels
 
-		# points = sample['points']
-		# labels = sample['labels']
+    dataset = tf.data.TFRecordDataset(in_file)
+    dataset = dataset.map(_extract_fn)
+    dataset = dataset.map(_preprocess_fn)
 
-		points = tf.reshape(points, (-1, 3))
-		labels = tf.reshape(labels, (-1, 1))
+    return dataset
 
-		return points, labels
-
-	dataset = tf.data.TFRecordDataset(in_file)
-	dataset = dataset.map(_extract_fn)
-	dataset = dataset.map(_preprocess_fn)
-
-	return dataset
 
 def train():
+    model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
 
-	model = pointnet_SEM_SEG_Model(config['batch_size'], config['num_classes'], config['bn'])
+    train_ds = load_dataset(config['train_ds'], config['batch_size'])
+    val_ds = load_dataset(config['val_ds'], config['batch_size'])
+    test_ds = load_test_dataset(config['test_ds'])
+    # view_test_ds = load_test_dataset(config['view_ds'])
 
+    # for x in test_ds:
+    # 	print(x)
+    callbacks = [
+        keras.callbacks.TensorBoard(
+            './logs/{}'.format(config['log_dir']), update_freq=50),
+        keras.callbacks.ModelCheckpoint(
+            './logs/{}/model/weights'.format(config['log_dir']), 'val_sparse_categorical_accuracy',
+            save_best_only=True),
+        tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss', restore_best_weights=True, patience=10)
+    ]
 
-	train_ds = load_dataset(config['train_ds'], config['batch_size'])
-	val_ds = load_dataset(config['val_ds'], config['batch_size'])
-	test_ds = load_test_dataset(config['test_ds'])
-	# view_test_ds = load_test_dataset(config['view_ds'])
+    model.build((config['batch_size'], 8192, 3))
+    print(model.summary())
 
-	# for x in test_ds:
-	# 	print(x)
-	callbacks = [
-		keras.callbacks.TensorBoard(
-			'./logs/{}'.format(config['log_dir']), update_freq=50),
-		keras.callbacks.ModelCheckpoint(
-			'./logs/{}/model/weights'.format(config['log_dir']), 'val_sparse_categorical_accuracy', save_best_only=True),
-		tf.keras.callbacks.EarlyStopping(
-			monitor='val_loss', restore_best_weights=True, patience=10)
-	]
+    model.compile(
+        optimizer=keras.optimizers.Adam(config['lr']),
+        loss=keras.losses.SparseCategoricalCrossentropy(),
+        metrics=[keras.metrics.SparseCategoricalAccuracy()]
+    )
 
-	model.build((config['batch_size'], 8192, 3))
-	print(model.summary())
+    history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        validation_steps=10,
+        validation_freq=1,
+        callbacks=callbacks,
+        epochs=1000,
+        verbose=1
+    )
 
-	model.compile(
-		optimizer=keras.optimizers.Adam(config['lr']),
-		loss=keras.losses.SparseCategoricalCrossentropy(),
-		metrics=[keras.metrics.SparseCategoricalAccuracy()]
-	)
+    json.dump(history.history, open("run_history.json", 'w'))
 
-	history = model.fit(
-		train_ds,
-		validation_data=val_ds,
-		validation_steps=10,
-		validation_freq=1,
-		callbacks=callbacks,
-		epochs=1000,
-		verbose=1
-	)
-
-	json.dump(history.history, open("run_history.json", 'w'))
 
 def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
     sparse_pcd = o3d.geometry.PointCloud()
@@ -163,21 +158,21 @@ def interpolate_dense_labels(sparse_points, sparse_labels, dense_points, k=1):
         dense_labels.append(dense_label)
     return dense_labels
 
+
 if __name__ == '__main__':
+    config = {
+        'train_ds': f'data/{DATASET}/train/all.tfrecord',
+        'val_ds': f'data/{DATASET}/val/all.tfrecord',
+        # 'test_ds' : f'data/{DATASET}/test.tfrecord',
+        'test_ds': f'data/{DATASET}/testBUT_TRAIN.tfrecord',
+        'log_dir': 'zimaging_pnet1_n9_lr=0.0001',
+        'log_freq': 10,
+        'test_freq': 100,
+        'batch_size': 4,
+        'num_classes': 2,
+        'lr': 0.0001,
+        'bn': False,
+    }
 
-	config = {
-		'train_ds' : f'data/{DATASET}/train/all.tfrecord',
-		'val_ds' : f'data/{DATASET}/val/all.tfrecord',
-		# 'test_ds' : f'data/{DATASET}/test.tfrecord',
-		'test_ds' : f'data/{DATASET}/testBUT_TRAIN.tfrecord',
-		'log_dir' : 'zimaging_pnet1_n9_lr=0.0001',
-		'log_freq' : 10,
-		'test_freq' : 100,
-		'batch_size' : 4,
-		'num_classes' : 2,
-		'lr' : 0.0001,
-		'bn' : False,
-	}
-
-	train()
-	pnet1_test_zimaging.test(config)
+    train()
+    pnet1_test_zimaging.test(config)

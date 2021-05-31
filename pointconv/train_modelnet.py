@@ -1,26 +1,21 @@
 import os
 import sys
-
-sys.path.insert(0, './')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 import tensorflow as tf
 from tensorflow import keras
+from pointconv.model_modelnet import PointConvModel
 
-from model_modelnet import PointConvModel
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 tf.random.set_seed(1234)
 
 
 def load_dataset(in_file, batch_size):
-
     assert os.path.isfile(in_file), '[error] dataset path not found'
 
     n_points = 8192
     shuffle_buffer = 1000
 
     def _extract_fn(data_record):
-
         in_features = {
             'points': tf.io.FixedLenFeature([n_points * 3], tf.float32),
             'label': tf.io.FixedLenFeature([1], tf.int64)
@@ -29,7 +24,6 @@ def load_dataset(in_file, batch_size):
         return tf.io.parse_single_example(data_record, in_features)
 
     def _preprocess_fn(sample):
-
         points = sample['points']
         label = sample['label']
 
@@ -48,7 +42,6 @@ def load_dataset(in_file, batch_size):
 
 
 def train():
-
     model = PointConvModel(config['batch_size'], config['bn'])
 
     train_ds = load_dataset(config['train_ds'], config['batch_size'])
@@ -74,24 +67,23 @@ def train():
 
     model.fit(
         train_ds,
-        validation_data = val_ds,
-        validation_steps = 10,
-        validation_freq = 1,
-        callbacks = callbacks,
-        epochs = 100,
-        verbose = 1
+        validation_data=val_ds,
+        validation_steps=10,
+        validation_freq=1,
+        callbacks=callbacks,
+        epochs=100,
+        verbose=1
     )
 
 
 if __name__ == '__main__':
-
     config = {
-        'train_ds' : './data/modelnet_train.tfrecord',
-        'val_ds' : './data/modelnet_val.tfrecord',
-        'batch_size' : 8,
-        'lr' : 1e-3,
-        'bn' : False,
-        'log_dir' : 'modelnet_1'
+        'train_ds': './data/modelnet_train.tfrecord',
+        'val_ds': './data/modelnet_val.tfrecord',
+        'batch_size': 8,
+        'lr': 1e-3,
+        'bn': False,
+        'log_dir': 'modelnet_1'
     }
 
     train()
